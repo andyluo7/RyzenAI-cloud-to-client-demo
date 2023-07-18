@@ -5,45 +5,22 @@ the process of preparing, quantizing, and deploying a model using Ryzen
 AI.
 
 The following are the steps and the required files to run the example.
-The files can be downloaded from
-[here](https://github.com/amd/ryzen-ai-documentation/tree/main/example/resnet50).
 
-  -----------------------------------------------------------------------------
-  Steps                Files Used                     Description
-  -------------------- ------------------------------ -------------------------
-  Installation         `requirements.txt`             Install the necessary
-                                                      package for this example.
+| Steps          | Files Used                     | Description                                               |
+| -------------- | ------------------------------ | --------------------------------------------------------- |
+| Installation   | `requirements.txt`             | Install the necessary package for this example.           |
+| Preparation    | `prepare_model_data.py`,`resnet_utils.py`       | Train to prepare a model for the example. The training process adopts the transfer learning technique to train a pre-trained ResNet-50 model with the CIFAR-10 dataset.   |
+| Quantization   | `resnet_static_config.json`,`user_script.py`   | Convert the model to the IPU-deployable model by performing Post-Training Quantization flow using Olive.         |
+| Deployment     | `predict.py`                   | Run the Quantized model using the ONNX Runtime code. We demonstrate running the model on both CPU and IPU.   |
 
-  Preparation          `prepare_model_data.py`,       Train to prepare a model
-                       `resnet_utils.py`              for the example. The
-                                                      training process adopts
-                                                      the transfer learning
-                                                      technique to train a
-                                                      pre-trained ResNet-50
-                                                      model with the CIFAR-10
-                                                      dataset.
 
-  Quantization         `resnet_static_config.json`,   Convert the model to the
-                       `user_script.py`               IPU-deployable model by
-                                                      performing Post-Training
-                                                      Quantization flow using
-                                                      Olive.
 
-  Deployment           `predict.py`                   Run the Quantized model
-                                                      using the ONNX Runtime
-                                                      code. We demonstrate
-                                                      running the model on both
-                                                      CPU and IPU.
-  -----------------------------------------------------------------------------
-
-## \|
 
 ### Step 1: Install Packages
 
 -   Ensure that the Ryzen AI SDK is correctly installed. For more
-    details, see the
-    `installation instructions <inst.rst>`{.interpreted-text
-    role="ref"}.
+    details, see the [installation instructions](https://pages.gitenterprise.xilinx.com/udayd/RyzenAI/html/inst.html).
+
 -   This example requires a couple of additional packages. Run the
     following command to install them:
 
@@ -51,7 +28,7 @@ The files can be downloaded from
 python -m pip install -r requirements.txt
 ```
 
-## \|
+
 
 ### Step 2: Prepare the Model and the Data
 
@@ -111,7 +88,7 @@ After completing the training process, observe the following output:
 -   The downloaded CIFAR-10 dataset is saved in the current directory at
     the following location: `data\cifar-10-batches-py\*`.
 
-## \|
+
 
 ### Step 3: Quantize the Model
 
@@ -125,27 +102,26 @@ file.
 
 -   First, run Olive in the setup mode:
 
-    > ``` 
-    > python -m olive.workflows.run --config resnet_static_config.json --setup
-    > ```
+    ``` 
+    python -m olive.workflows.run --config resnet_static_config.json --setup
+    ```
 
 -   Next, run Olive to convert the model to the ONNX format and quantize
     it:
 
-    > ``` 
-    > python -m olive.workflows.run --config resnet_static_config.json 
-    > ```
-    >
-    > After the run is complete, the quantized ONNX model `model.onnx`
-    > is saved inside a cache directory.
-    >
-    > Example `model.onnx` path:
-    > `./cache/models/1_VitisAIQuantization-0-1586a0b670df52697b3acf9aecd67b24-cpu-cpu/model.onnx`
+    ``` 
+    python -m olive.workflows.run --config resnet_static_config.json 
+    ```
+    
+    After the run is complete, the quantized ONNX model `model.onnx` is saved inside a cache directory.
+    
+    Example `model.onnx` path:
+    `./cache/models/1_VitisAIQuantization-0-1586a0b670df52697b3acf9aecd67b24-cpu-cpu/model.onnx`
 
 -   Finally, copy the quantized ONNX model in the current working
     directory for deployment.
 
-## \|
+
 
 ### Step 4: Deploy the Model
 
@@ -159,7 +135,7 @@ them by running the quantized ResNet-50 model on CPU or IPU.
 By default, `predict.py` runs the model on CPU.
 
 ``` 
-> python predict.py
+python predict.py
 ```
 
 Typical output
@@ -183,15 +159,12 @@ To successfully run the model on the IPU, run the following setup steps:
 
 -   Ensure that the `XLNX_VART_FIRMWARE` environment variable is
     correctly pointing to the XCLBIN file included in the ONNX Vitis AI
-    Execution Provider package. For more information, see the
-    `installation instructions <set-vart-envar>`{.interpreted-text
-    role="ref"}.
+    Execution Provider package. 
 -   Copy the `vaip_config.json` runtime configuration file from the
-    Vitis AI Execution Provider package to the current directory. For
-    more information, see the
-    `installation instructions <copy-vaip-config>`{.interpreted-text
-    role="ref"}. The `vaip_config.json` is used by the `predict.py`
+    Vitis AI Execution Provider package to the current directory. The `vaip_config.json` is used by the `predict.py`
     script to configure the Vitis AI Execution Provider.
+
+For more information, see the [runtime environment setup](https://pages.gitenterprise.xilinx.com/udayd/RyzenAI/html/inst.html#runtime-environment-setup)
 
 The following section of the `predict.py` script shows how ONNX Runtime
 is configured to deploy the model on the Ryzen AI IPU:
@@ -221,7 +194,7 @@ Run the `predict.py` with the `--ep ipu` switch to run the ResNet-50
 model on the Ryzen AI IPU:
 
 ``` 
->python predict.py --ep ipu
+python predict.py --ep ipu
 ```
 
 Typical output

@@ -1,0 +1,247 @@
+# Getting Started Example
+
+This example uses the ResNet-50 model from PyTorch Hub to demonstrate
+the process of preparing, quantizing, and deploying a model using Ryzen
+AI.
+
+The following are the steps and the required files to run the example.
+The files can be downloaded from
+[here](https://github.com/amd/ryzen-ai-documentation/tree/main/example/resnet50).
+
+  -----------------------------------------------------------------------------
+  Steps                Files Used                     Description
+  -------------------- ------------------------------ -------------------------
+  Installation         `requirements.txt`             Install the necessary
+                                                      package for this example.
+
+  Preparation          `prepare_model_data.py`,       Train to prepare a model
+                       `resnet_utils.py`              for the example. The
+                                                      training process adopts
+                                                      the transfer learning
+                                                      technique to train a
+                                                      pre-trained ResNet-50
+                                                      model with the CIFAR-10
+                                                      dataset.
+
+  Quantization         `resnet_static_config.json`,   Convert the model to the
+                       `user_script.py`               IPU-deployable model by
+                                                      performing Post-Training
+                                                      Quantization flow using
+                                                      Olive.
+
+  Deployment           `predict.py`                   Run the Quantized model
+                                                      using the ONNX Runtime
+                                                      code. We demonstrate
+                                                      running the model on both
+                                                      CPU and IPU.
+  -----------------------------------------------------------------------------
+
+## \|
+
+### Step 1: Install Packages
+
+-   Ensure that the Ryzen AI SDK is correctly installed. For more
+    details, see the
+    `installation instructions <inst.rst>`{.interpreted-text
+    role="ref"}.
+-   This example requires a couple of additional packages. Run the
+    following command to install them:
+
+``` 
+python -m pip install -r requirements.txt
+```
+
+## \|
+
+### Step 2: Prepare the Model and the Data
+
+In this example, the ResNet-50 model from PyTorch Hub is utilized and
+trained using the CIFAR-10 dataset.
+
+The `prepare_model_data.py` script downloads the ResNet-50 model from
+the PyTorch Hub. The script also downloads the CIFAR10 dataset and uses
+it to retrain the model using the transfer learning technique. The
+training process runs over 500 images for each epoch up to five epochs.
+The training process takes approximately 30 minutes to complete. At the
+end of the training, the trained model is used for the subsequent steps.
+
+Run the following command to start the training:
+
+``` 
+python prepare_model_data.py --num_epochs 5
+```
+
+A typical output from the training process looks as follows:
+
+``` 
+Downloading: "https://download.pytorch.org/models/resnet50-11ad3fa6.pth" to C:\Users\JohnDoe/.cache\torch\hub\checkpoints\resnet50-11ad3fa6.pth
+100%|██████████████████████████████████████████████████████████████████████████████| 97.8M/97.8M [02:07<00:00, 805kB/s]
+Epoch [1/5], Step [100/500] Loss: 1.1550
+Epoch [1/5], Step [200/500] Loss: 1.0453
+Epoch [1/5], Step [300/500] Loss: 0.6397
+Epoch [1/5], Step [400/500] Loss: 0.6130
+Epoch [1/5], Step [500/500] Loss: 0.6792
+Epoch [2/5], Step [100/500] Loss: 0.5454
+Epoch [2/5], Step [200/500] Loss: 0.5218
+Epoch [2/5], Step [300/500] Loss: 0.7235
+Epoch [2/5], Step [400/500] Loss: 0.5740
+Epoch [2/5], Step [500/500] Loss: 0.9055
+Epoch [3/5], Step [100/500] Loss: 0.5954
+Epoch [3/5], Step [200/500] Loss: 0.4662
+Epoch [3/5], Step [300/500] Loss: 0.3351
+Epoch [3/5], Step [400/500] Loss: 0.4871
+Epoch [3/5], Step [500/500] Loss: 0.4340
+Epoch [4/5], Step [100/500] Loss: 0.4139
+Epoch [4/5], Step [200/500] Loss: 0.4724
+Epoch [4/5], Step [300/500] Loss: 0.4847
+Epoch [4/5], Step [400/500] Loss: 0.4778
+Epoch [4/5], Step [500/500] Loss: 0.3955
+Epoch [5/5], Step [100/500] Loss: 0.5511
+Epoch [5/5], Step [200/500] Loss: 0.4557
+Epoch [5/5], Step [300/500] Loss: 0.6158
+Epoch [5/5], Step [400/500] Loss: 0.3884
+Epoch [5/5], Step [500/500] Loss: 0.4330
+Accuracy of the model on the test images: 75.27 %
+```
+
+After completing the training process, observe the following output:
+
+-   The trained ResNet-50 model on the CIFAR-10 dataset is saved at the
+    following location: `models\resnet_trained_for_cifar10.pt`.
+-   The downloaded CIFAR-10 dataset is saved in the current directory at
+    the following location: `data\cifar-10-batches-py\*`.
+
+## \|
+
+### Step 3: Quantize the Model
+
+Quantizing AI models from floating-point to 8-bit integers reduces
+computational power and the memory footprint required for inference. For
+model quantization, you can either use Olive or the Vitis AI quantizer.
+This example utilizes the Olive workflow.
+
+The Olive workflow is configured using the `resnet_static_config.json`
+file.
+
+-   First, run Olive in the setup mode:
+
+    > ``` 
+    > python -m olive.workflows.run --config resnet_static_config.json --setup
+    > ```
+
+-   Next, run Olive to convert the model to the ONNX format and quantize
+    it:
+
+    > ``` 
+    > python -m olive.workflows.run --config resnet_static_config.json 
+    > ```
+    >
+    > After the run is complete, the quantized ONNX model `model.onnx`
+    > is saved inside a cache directory.
+    >
+    > Example `model.onnx` path:
+    > `./cache/models/1_VitisAIQuantization-0-1586a0b670df52697b3acf9aecd67b24-cpu-cpu/model.onnx`
+
+-   Finally, copy the quantized ONNX model in the current working
+    directory for deployment.
+
+## \|
+
+### Step 4: Deploy the Model
+
+The `predict.py` script is used to deploy the model. It extracts the
+first ten images from the CIFAR-10 test dataset and converts them to the
+.png format. The script then reads all those ten images and classifies
+them by running the quantized ResNet-50 model on CPU or IPU.
+
+#### Deploy the Model on the CPU
+
+By default, `predict.py` runs the model on CPU.
+
+``` 
+> python predict.py
+```
+
+Typical output
+
+``` 
+Image 0: Actual Label cat, Predicted Label cat
+Image 1: Actual Label ship, Predicted Label ship
+Image 2: Actual Label ship, Predicted Label airplane
+Image 3: Actual Label airplane, Predicted Label airplane
+Image 4: Actual Label frog, Predicted Label frog
+Image 5: Actual Label frog, Predicted Label frog
+Image 6: Actual Label automobile, Predicted Label automobile
+Image 7: Actual Label frog, Predicted Label frog
+Image 8: Actual Label cat, Predicted Label cat
+Image 9: Actual Label automobile, Predicted Label automobile
+```
+
+#### Deploy the Model on the Ryzen AI IPU
+
+To successfully run the model on the IPU, run the following setup steps:
+
+-   Ensure that the `XLNX_VART_FIRMWARE` environment variable is
+    correctly pointing to the XCLBIN file included in the ONNX Vitis AI
+    Execution Provider package. For more information, see the
+    `installation instructions <set-vart-envar>`{.interpreted-text
+    role="ref"}.
+-   Copy the `vaip_config.json` runtime configuration file from the
+    Vitis AI Execution Provider package to the current directory. For
+    more information, see the
+    `installation instructions <copy-vaip-config>`{.interpreted-text
+    role="ref"}. The `vaip_config.json` is used by the `predict.py`
+    script to configure the Vitis AI Execution Provider.
+
+The following section of the `predict.py` script shows how ONNX Runtime
+is configured to deploy the model on the Ryzen AI IPU:
+
+``` 
+parser = argparse.ArgumentParser()
+parser.add_argument('--ep', type=str, default ='cpu',choices = ['cpu','ipu'], help='EP backend selection')
+opt = parser.parse_args()
+
+providers = ['CPUExecutionProvider']
+provider_options = [{}]
+
+if opt.ep == 'ipu':
+   providers = ['VitisAIExecutionProvider']
+   cache_dir = Path(__file__).parent.resolve()
+   provider_options = [{
+              'config_file': 'vaip_config.json',
+              'cacheDir': str(cache_dir),
+              'cacheKey': 'modelcachekey'
+              }]
+
+session = ort.InferenceSession(model.SerializeToString(), providers=providers,
+                               provider_options=provider_options)
+```
+
+Run the `predict.py` with the `--ep ipu` switch to run the ResNet-50
+model on the Ryzen AI IPU:
+
+``` 
+>python predict.py --ep ipu
+```
+
+Typical output
+
+``` 
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I20230610 23:31:05.571316  6032 vitisai_compile_model.cpp:210] Vitis AI EP Load ONNX Model Success
+I20230610 23:31:05.571316  6032 vitisai_compile_model.cpp:211] Graph Input Node Name/Shape (1)
+I20230610 23:31:05.571316  6032 vitisai_compile_model.cpp:215]   input : [-1x3x32x32]
+I20230610 23:31:05.571316  6032 vitisai_compile_model.cpp:221] Graph Output Node Name/Shape (1)
+I20230610 23:31:05.571316  6032 vitisai_compile_model.cpp:225]   output : [-1x10]
+I20230610 23:31:05.579483  6032 vitisai_compile_model.cpp:131] use cache key modelcachekey
+Image 0: Actual Label cat, Predicted Label cat
+Image 1: Actual Label ship, Predicted Label ship
+Image 2: Actual Label ship, Predicted Label airplane
+Image 3: Actual Label airplane, Predicted Label airplane
+Image 4: Actual Label frog, Predicted Label frog
+Image 5: Actual Label frog, Predicted Label frog
+Image 6: Actual Label automobile, Predicted Label automobile
+Image 7: Actual Label frog, Predicted Label frog
+Image 8: Actual Label cat, Predicted Label cat
+Image 9: Actual Label automobile, Predicted Label automobile
+```

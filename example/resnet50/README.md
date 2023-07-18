@@ -1,6 +1,6 @@
-# Getting Started Example
+# Getting Started Example with Resnet50
 
-This example uses the ResNet-50 model from PyTorch Hub to demonstrate
+This example uses the Resnet50 model from PyTorch Hub to demonstrate
 the process of preparing, quantizing, and deploying a model using Ryzen
 AI.
 
